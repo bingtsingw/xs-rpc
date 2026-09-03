@@ -1,0 +1,11 @@
+autoInstallPeers: false
+minimumReleaseAge: 0
+
+packages:
+  - 'packages/**'
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  core-js: false
+  less: false
+  protobufjs: false
