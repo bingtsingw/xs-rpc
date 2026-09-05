@@ -26,3 +26,5 @@ jobs:
           version-script: pnpm changeset version
           publish-script: pnpm changeset-publish
           commit-message: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
