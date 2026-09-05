@@ -1,5 +1,11 @@
 # @xs-rpc/client
 
+## 0.2.1
+
+### Patch Changes
+
+- [`9d29879`](https://github.com/bingtsingw/xs-rpc/commit/9d29879abf8c1d817dbab07efefcd5f3f8ffc0b2) Thanks [@bingtsingw](https://github.com/bingtsingw)! - add package provenance
+
 ## 0.2.0
 
 ### Minor Changes
