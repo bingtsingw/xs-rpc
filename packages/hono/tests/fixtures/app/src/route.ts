@@ -4,9 +4,11 @@ type RegisteredInput = NamedInput & {
   readonly __apiInputMetadata?: '@fixture/shared#NamedInput';
 };
 
+type StatusCode = 200 | 201;
+
 type RouteSchema = {
   '/health': {
-    $get: { input: {}; output: { ok: true }; outputFormat: 'json'; status: 200 };
+    $get: { input: {}; output: { ok: true }; outputFormat: 'json'; status: StatusCode };
   };
   '/internal': {
     $post: { input: {}; output: null; outputFormat: 'body'; status: 204 };
