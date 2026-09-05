@@ -130,11 +130,7 @@ importers:
 
   packages/client: {}
 
-  packages/hono:
-    dependencies:
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
+  packages/hono: {}
 
 packages:
 

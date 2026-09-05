@@ -19,8 +19,8 @@
     "dev": "vp pack --watch",
     "test": "bun test"
   },
-  "dependencies": {
-    "typescript": "^5.8.3"
+  "peerDependencies": {
+    "typescript": ">=5.0.0 <6"
   },
   "engines": {
     "node": ">=24"
