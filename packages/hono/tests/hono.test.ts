@@ -9,6 +9,10 @@ import { analyzeHonoApi, renderApiManifest, renderApiSchema, renderTsRestCompat 
 const tsconfigPath = fileURLToPath(new URL('./fixtures/tsconfig.json', import.meta.url));
 const routeFilePath = fileURLToPath(new URL('./fixtures/app/src/route.ts', import.meta.url));
 const invalidRouteFilePath = fileURLToPath(new URL('./fixtures/app/src/invalid-route.ts', import.meta.url));
+const paginationRouteFilePath = fileURLToPath(new URL('./fixtures/app/src/pagination-route.ts', import.meta.url));
+const cursorRouteFilePath = fileURLToPath(new URL('./fixtures/app/src/cursor-route.ts', import.meta.url));
+const inconsistentRouteFilePath = fileURLToPath(new URL('./fixtures/app/src/inconsistent-route.ts', import.meta.url));
+const unsupportedRouteFilePath = fileURLToPath(new URL('./fixtures/app/src/unsupported-route.ts', import.meta.url));
 
 const analyze = () => {
   return analyzeHonoApi({
@@ -211,6 +215,97 @@ describe('Hono API analysis and rendering', () => {
       const analysis = analyzeHonoApi({ tsconfigPath, routeFilePath });
 
       expect(() => renderTsRestCompat(analysis)).toThrow('ts-rest compatibility does not support HEAD');
+    });
+  });
+
+  describe('page pagination rendering', () => {
+    const analyzePagination = () => analyzeHonoApi({ tsconfigPath, routeFilePath: paginationRouteFilePath });
+
+    test('intersects existing query, synthesizes optional query, and records pagination kind', () => {
+      const schema = renderApiSchema(analyzePagination());
+
+      expect(schema).toContain('export interface ApiPageQuery');
+      expect(schema).toContain('page?: number;');
+      expect(schema).toContain('query: (PageQuery) & ApiPageQuery;');
+      expect(schema).toContain('pagination: "page";');
+      expect(schema).toContain('"/items": {\n    "GET": { input: { query?: ApiPageQuery; }');
+      expect(schema).toContain('input: { param: { id: string; }; query?: ApiPageQuery; }');
+      expect(schema).not.toContain('ApiCursorQuery');
+      expect(schema).not.toContain('__paginationKind');
+    });
+
+    test('forces query input parts and pagination on the manifest', () => {
+      const manifest = renderApiManifest(analyzePagination());
+
+      expect(manifest).toContain("export type ApiManifestPagination = 'page' | 'cursor';");
+      expect(manifest).toContain('pagination?: ApiManifestPagination;');
+      expect(manifest).toContain('key: "GET /entries"');
+      expect(manifest).toContain('input: ["query"]');
+      expect(manifest).toContain('pagination: "page"');
+      expect(manifest).toContain('key: "GET /items"');
+      expect(manifest).toContain('input: ["param","query"]');
+    });
+
+    test('renders ApiPageQuery on the ts-rest contract query type', () => {
+      const contract = renderTsRestCompat(analyzePagination());
+
+      expect(contract).toContain('export interface ApiPageQuery');
+      expect(contract).toContain('query: c.type<(PageQuery) & ApiPageQuery>()');
+      expect(contract).toContain('query: c.type<ApiPageQuery | undefined>()');
+      expect(contract).not.toContain('ApiCursorQuery');
+      expect(contract).not.toContain('__paginationKind');
+    });
+  });
+
+  describe('cursor pagination rendering', () => {
+    const analyzeCursor = () => analyzeHonoApi({ tsconfigPath, routeFilePath: cursorRouteFilePath });
+
+    test('intersects existing query, synthesizes optional query, and records pagination kind', () => {
+      const schema = renderApiSchema(analyzeCursor());
+
+      expect(schema).toContain('export interface ApiCursorQuery');
+      expect(schema).toContain('cursor?: string;');
+      expect(schema).toContain('limit?: number;');
+      expect(schema).toContain('query: (CursorQuery) & ApiCursorQuery;');
+      expect(schema).toContain('pagination: "cursor";');
+      expect(schema).toContain('"/cursor": {\n    "GET": { input: { query?: ApiCursorQuery; }');
+      expect(schema).toContain('input: { param: { id: string; }; query?: ApiCursorQuery; }');
+      expect(schema).not.toContain('ApiPageQuery');
+      expect(schema).not.toContain('__paginationKind');
+    });
+
+    test('forces query input parts and pagination on the manifest', () => {
+      const manifest = renderApiManifest(analyzeCursor());
+
+      expect(manifest).toContain('key: "GET /feeds"');
+      expect(manifest).toContain('input: ["query"]');
+      expect(manifest).toContain('pagination: "cursor"');
+      expect(manifest).toContain('key: "GET /cursor/:id"');
+      expect(manifest).toContain('input: ["param","query"]');
+    });
+
+    test('renders ApiCursorQuery on the ts-rest contract query type', () => {
+      const contract = renderTsRestCompat(analyzeCursor());
+
+      expect(contract).toContain('export interface ApiCursorQuery');
+      expect(contract).toContain('query: c.type<(CursorQuery) & ApiCursorQuery>()');
+      expect(contract).toContain('query: c.type<ApiCursorQuery | undefined>()');
+      expect(contract).not.toContain('ApiPageQuery');
+      expect(contract).not.toContain('__paginationKind');
+    });
+  });
+
+  describe('pagination rendering errors', () => {
+    test('rejects inconsistent pagination kinds on a union endpoint', () => {
+      const analysis = analyzeHonoApi({ tsconfigPath, routeFilePath: inconsistentRouteFilePath });
+
+      expect(() => renderApiSchema(analysis)).toThrow('Endpoint pagination kinds are inconsistent');
+    });
+
+    test('rejects unsupported pagination kinds', () => {
+      const analysis = analyzeHonoApi({ tsconfigPath, routeFilePath: unsupportedRouteFilePath });
+
+      expect(() => renderApiSchema(analysis)).toThrow('Unsupported pagination kind: offset');
     });
   });
 });

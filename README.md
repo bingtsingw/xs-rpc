@@ -29,7 +29,7 @@ writeFileSync('./src/generated/api-manifest.ts', renderApiManifest(analysis));
 writeFileSync('./src/generated/api-contract.ts', renderTsRestCompat(analysis));
 ```
 
-The analyzer resolves unhandled absolute and relative type references by finding the closest `package.json` and using its `name`. Namespace aliases are derived directly from that name (`@acme/sd-constant` becomes `AcmeSdConstant`); if a valid TypeScript identifier cannot be derived, provide an alias with `resolveTypeImport`. It recognizes the `__apiInputMetadata` convention emitted by existing `defineApiInputRegistry` helpers, but does not own validation middleware.
+The analyzer resolves unhandled absolute and relative type references by finding the closest `package.json` and using its `name`. Namespace aliases are derived directly from that name (`@acme/sd-constant` becomes `AcmeSdConstant`); if a valid TypeScript identifier cannot be derived, provide an alias with `resolveTypeImport`. It recognizes the `__apiInputMetadata` convention emitted by existing `defineApiInputRegistry` helpers, and `__paginationKind` from `pagination.page()` / `pagination.cursor()` middleware, but does not own those middlewares.
 
 ## Create a client
 
