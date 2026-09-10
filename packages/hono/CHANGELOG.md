@@ -1,5 +1,11 @@
 # @xs-rpc/hono
 
+## 0.3.0
+
+### Minor Changes
+
+- [`0a4ec27`](https://github.com/bingtsingw/xs-rpc/commit/0a4ec2729fa201c3d2185a47da8b14ca1daefc91) Thanks [@bingtsingw](https://github.com/bingtsingw)! - Recognize `__paginationKind` `page` and `cursor`, and synthesize `ApiPageQuery` / `ApiCursorQuery` in schema, manifest, and ts-rest compat output.
+
 ## 0.2.1
 
 ### Patch Changes
