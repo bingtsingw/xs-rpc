@@ -1,9 +1,8 @@
+import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, test } from 'bun:test';
-
 import { analyzeHonoApi, renderApiManifest, renderApiSchema, renderTsRestCompat } from '../src';
 
 const tsconfigPath = fileURLToPath(new URL('./fixtures/tsconfig.json', import.meta.url));

@@ -4,26 +4,23 @@
   "license": "MIT",
   "scripts": {
     "check": "vp check",
-    "check:fix": "vp check --fix",
-    "build": "turbo run build",
-    "changeset-add": "changeset add",
-    "changeset-publish": "npm run check-publish && changeset publish",
-    "changeset-version": "changeset version",
     "check-mono": "sherif",
     "check-publish": "pnpm run build && pnpm run check && pnpm run test",
+    "changeset-publish": "npm run check-publish && changeset publish",
     "clean": "del **/dist **/.build **/.swc **/.turbo **/node_modules !node_modules",
     "commit": "czg",
     "dev": "turbo run dev",
     "prepare": "vp hooks enable",
+    "build": "turbo run build",
     "test": "turbo run test"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
     "@types/node": "24.13.3",
-    "@xstools-dev/cli-toolkit": "^0.3.0",
-    "@xstools-dev/config-ts": "^0.2.0",
+    "@xstools-dev/cli-toolkit": "0.3.0",
+    "@xstools-dev/config-ts": "0.2.0",
     "typescript": "5.8.3",
-    "vite-plus": "^0.3.1"
+    "vite-plus": "0.3.2"
   },
   "packageManager": "pnpm@12.2.1"
 }

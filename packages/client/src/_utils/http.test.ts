@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { isHttpMethod, toRequestPath, toResponseHeaders } from './http';
 
 describe('HTTP utilities', () => {

@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
-
 import { compileApiRouterRules, getApiRouterDecision } from './router-rules';
 import type { AnalyzeHonoApiOptions, AnalyzedHonoApiEndpoint, HonoApiAnalysis, HonoApiAnalysisSummary } from './types';
 import { apiHttpMethods, type ApiHttpMethod } from './types';

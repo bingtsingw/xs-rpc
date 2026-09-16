@@ -6,6 +6,5 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true
-  },
-  "include": ["app/src", "shared/src"]
+  }
 }
