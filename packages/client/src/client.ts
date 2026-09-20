@@ -3,6 +3,26 @@ import type { PathSegments, Simplify, UnionToIntersection } from './_utils/types
 
 export type XSRPCHttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
+export type XSRPCSchemaPath<TSchema> = Extract<keyof TSchema, string>;
+
+type XSRPCMethodAt<TSchema, TPath extends XSRPCSchemaPath<TSchema>> = Extract<keyof TSchema[TPath], XSRPCHttpMethod>;
+
+type XSRPCEndpointAt<TSchema, TPath extends XSRPCSchemaPath<TSchema>, TMethod extends XSRPCMethodAt<TSchema, TPath>> =
+  TSchema[TPath] extends Record<TMethod, infer TEndpoint> ? TEndpoint : never;
+
+type XSRPCInputOf<TEndpoint> = TEndpoint extends { input: infer TInput } ? TInput : never;
+type XSRPCOutputOf<TEndpoint> = TEndpoint extends { output: infer TOutput } ? TOutput : never;
+
+type XSRPCGetPath<TSchema> = {
+  [TPath in XSRPCSchemaPath<TSchema>]: TSchema[TPath] extends { GET: unknown } ? TPath : never;
+}[XSRPCSchemaPath<TSchema>];
+
+type XSRPCGetEndpoint<TSchema, TPath extends XSRPCGetPath<TSchema>> = TSchema[TPath] extends {
+  GET: infer TEndpoint;
+}
+  ? TEndpoint
+  : never;
+
 type ClientMethodCall<TEndpoint> = TEndpoint extends { input: infer TInput; output: infer TOutput }
   ? keyof TInput extends never
     ? {
@@ -30,13 +50,32 @@ type ClientRoute<TSegments extends readonly string[], TEndpointMap> = TSegments 
     }
   : ClientMethodCalls<TEndpointMap>;
 
-export type XSRPCClient<TSchema> = Simplify<
+type XSRPCClientRoutes<TSchema> = Simplify<
   UnionToIntersection<
     {
       [TPath in Extract<keyof TSchema, string>]: ClientRoute<PathSegments<TPath>, TSchema[TPath]>;
     }[Extract<keyof TSchema, string>]
   >
 >;
+
+/** A schema-aware low-level request protocol for composing packages without endpoint-method coupling. */
+export interface XSRPCRequestClient<TSchema> {
+  $request<TPath extends XSRPCGetPath<TSchema>>(request: {
+    input: XSRPCInputOf<XSRPCGetEndpoint<TSchema, TPath>>;
+    method: 'GET';
+    path: TPath;
+    signal?: AbortSignal;
+  }): Promise<XSRPCOutputOf<XSRPCGetEndpoint<TSchema, TPath>>>;
+
+  $request<TPath extends XSRPCSchemaPath<TSchema>, TMethod extends XSRPCMethodAt<TSchema, TPath>>(request: {
+    input: XSRPCInputOf<XSRPCEndpointAt<TSchema, TPath, TMethod>>;
+    method: TMethod;
+    path: TPath;
+    signal?: AbortSignal;
+  }): Promise<XSRPCOutputOf<XSRPCEndpointAt<TSchema, TPath, TMethod>>>;
+}
+
+export type XSRPCClient<TSchema> = XSRPCClientRoutes<TSchema> & XSRPCRequestClient<TSchema>;
 
 export type XSRPCResponseHeaders = Readonly<Record<string, string | readonly string[]>>;
 
@@ -50,6 +89,7 @@ export interface XSRPCRequestConfig {
   data?: unknown;
   method: Lowercase<XSRPCHttpMethod>;
   params?: unknown;
+  signal?: AbortSignal;
   url: string;
 }
 
@@ -68,40 +108,64 @@ export interface CreateXSRPCClientOptions {
   getRequest(): XSRPCRequestExecutor;
 }
 
-interface ClientRequestInput {
+export interface XSRPCRequestInput {
   json?: unknown;
   param?: PathParameters;
   query?: unknown;
 }
 
 interface ClientMethod {
-  call(input?: ClientRequestInput): Promise<unknown>;
-  callResponse(input?: ClientRequestInput): Promise<XSRPCResponse<unknown>>;
+  call(input?: XSRPCRequestInput): Promise<unknown>;
+  callResponse(input?: XSRPCRequestInput): Promise<XSRPCResponse<unknown>>;
 }
+
+interface ClientRequest {
+  input: XSRPCRequestInput;
+  method: XSRPCHttpMethod;
+  path: string;
+  signal?: AbortSignal;
+}
+
+const executeClientRequest = async (
+  options: CreateXSRPCClientOptions,
+  request: ClientRequest,
+): Promise<XSRPCResponse<unknown>> => {
+  const response = await options.getRequest().request({
+    data: Object.hasOwn(request.input, 'json') ? request.input.json : undefined,
+    method: request.method.toLowerCase() as Lowercase<XSRPCHttpMethod>,
+    params: request.input.query,
+    ...(request.signal === undefined ? {} : { signal: request.signal }),
+    url: toRequestPath(request.path, request.input.param),
+  });
+
+  return {
+    data: response.status === 204 || response.status === 205 ? null : response.data,
+    headers: toResponseHeaders(response.headers),
+    status: response.status,
+  };
+};
 
 const createClientMethod = (
   options: CreateXSRPCClientOptions,
   path: string[],
   method: Lowercase<XSRPCHttpMethod>,
 ): ClientMethod => ({
-  async call(input: ClientRequestInput = {}) {
+  async call(input: XSRPCRequestInput = {}) {
     return (await this.callResponse(input)).data;
   },
-  async callResponse(input: ClientRequestInput = {}) {
-    const response = await options.getRequest().request({
-      data: Object.hasOwn(input, 'json') ? input.json : undefined,
-      method,
-      params: input.query,
-      url: toRequestPath(`/${path.join('/')}`, input.param),
+  async callResponse(input: XSRPCRequestInput = {}) {
+    return executeClientRequest(options, {
+      input,
+      method: method.toUpperCase() as XSRPCHttpMethod,
+      path: `/${path.join('/')}`,
     });
-
-    return {
-      data: response.status === 204 || response.status === 205 ? null : response.data,
-      headers: toResponseHeaders(response.headers),
-      status: response.status,
-    };
   },
 });
+
+const createRequestMethod =
+  (options: CreateXSRPCClientOptions) =>
+  async (request: ClientRequest): Promise<unknown> =>
+    (await executeClientRequest(options, request)).data;
 
 const createClientProxy = (options: CreateXSRPCClientOptions, path: string[]): unknown =>
   new Proxy(
@@ -114,6 +178,10 @@ const createClientProxy = (options: CreateXSRPCClientOptions, path: string[]): u
 
         if (typeof key !== 'string') {
           return undefined;
+        }
+
+        if (key === '$request') {
+          return createRequestMethod(options);
         }
 
         if (isHttpMethod(key)) {

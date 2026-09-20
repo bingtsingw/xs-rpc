@@ -1,0 +1,36 @@
+{
+  "name": "@xs-rpc/react-query",
+  "version": "0.1.0-beta.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bingtsingw/xs-rpc",
+    "directory": "packages/react-query"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "default": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "5.103.1",
+    "@xs-rpc/client": "workspace:*",
+    "react": "19.3.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  }
+}

@@ -54,6 +54,7 @@ export default defineConfig({
     sortPackageJson: true,
     sortImports: {
       newlinesBetween: false,
+      partitionByNewline: true,
     },
   },
 });

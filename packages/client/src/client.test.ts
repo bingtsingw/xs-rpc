@@ -77,6 +77,23 @@ describe('createXSRPCClient', () => {
 
       expect(methods).toEqual(['head', 'options']);
     });
+
+    test('exposes $request as a schema-aware protocol without changing route APIs', async () => {
+      const requests: unknown[] = [];
+      const signal = new AbortController().signal;
+      const api = createXSRPCClient<TestApiSchema>({
+        getRequest: () => ({
+          request: async (request) => {
+            requests.push(request);
+            return { status: 200, data: { ok: true } };
+          },
+        }),
+      });
+
+      expect(await api.$request({ method: 'GET', path: '/health', input: {}, signal })).toEqual({ ok: true });
+
+      expect(requests).toEqual([{ method: 'get', url: '/health', params: undefined, data: undefined, signal }]);
+    });
   });
 
   describe('response handling', () => {
